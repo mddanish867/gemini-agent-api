@@ -171,10 +171,4 @@ python -m uvicorn main:app --reload
 
 
 
-Ask ChatGPT
-
-
-
-Tools
-
 

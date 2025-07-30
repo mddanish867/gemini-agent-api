@@ -1,2 +1,16 @@
-.env*
+# Python
+__pycache__/
+*.pyc
+
+# Environments
 .env
+.env.local
+
+# IDEs
+.vscode/
+.idea/
+
+# OS files
+.chroma_store
+chroma_store
+Thumbs.db
