@@ -3,7 +3,8 @@ import logging
 from fastapi import FastAPI, HTTPException, Query
 from models import QuestionRequest
 from gemini_client import model
-from embeddings import get_embedding
+# from embeddings import get_embedding
+from embeddings import embedding
 from pinecone_client import index as pinecone_index
 from chroma_client import collection as chroma_collection
 
@@ -37,17 +38,19 @@ def debug_chroma_data():
 
 @app.post("/ask")
 async def ask_question(request: QuestionRequest):
+    question_embedding = embedding(request.question)
     try:
         # Step 1: Generate response
         response = model.generate_content(request.question)
         answer_text = response.text
 
         # Step 2: Generate embeddings
-        question_vector = get_embedding(request.question)
-        answer_vector = get_embedding(answer_text)
+        question_vector = embedding(request.question)
+        answer_vector = embedding(answer_text)
 
         question_id = str(uuid.uuid4())
         answer_id = str(uuid.uuid4())
+        timestamp = datetime.utcnow().isoformat()
 
         # Step 3a: Store in Pinecone
         pinecone_index.upsert([
@@ -93,9 +96,7 @@ async def ask_question(request: QuestionRequest):
     ]
 )
         
-        # ✅ Persist to disk
-        #chroma_client.persist()
-        #pinecone_index.flush()
+        
         # Step 4: Return response
         logger.info(f"Question ID: {question_id}, Answer ID: {answer_id}")
         return {
@@ -113,7 +114,7 @@ async def ask_question(request: QuestionRequest):
 @app.post("/search-pinecone")
 async def search_pinecone(query: str = Query(...)):
     try:
-        query_vector = get_embedding(query)
+        query_vector = embedding(query)
         result = pinecone_index.query(vector=query_vector, top_k=5, include_metadata=True)
         return result
     except Exception as e:
@@ -123,7 +124,7 @@ async def search_pinecone(query: str = Query(...)):
 @app.post("/search-chroma")
 async def search_chroma(query: str = Query(...)):
     try:
-        query_vector = get_embedding(query)
+        query_vector = embedding(query)
         results = chroma_collection.query(
             query_embeddings=[query_vector],
             n_results=5,

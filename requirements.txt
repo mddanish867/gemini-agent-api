@@ -6,3 +6,5 @@ python-dotenv
 sentence-transformers
 pinecone
 chromadb
+python-multipart
+tqdm
