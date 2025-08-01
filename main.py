@@ -85,7 +85,9 @@ async def ask_question(request: QuestionRequest, background_tasks: BackgroundTas
         # Step 3: Return the response IMMEDIATELY
         logger.info("Response generated. Handing off saving to background task.")
         return {
-            "status": "success",
+            "status": "success",                
+            "user_id": request.user_id,
+            "timestamp": datetime.utcnow().isoformat(),
             "answer": answer_text
         }
 
