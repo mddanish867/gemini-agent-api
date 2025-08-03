@@ -17,7 +17,6 @@ load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-VECTOR_DIMENSION = int(os.getenv("VECTOR_DIMENSION"))
 
 app = FastAPI()
 
@@ -110,8 +109,8 @@ async def get_user_history(user_id: str = Query(...)):
     try:
         # Use query() instead of get(). Provide a dummy vector and top_k.
         results = pinecone_index.query(
-            vector=[0.0] * VECTOR_DIMENSION,
-            filter={"user_id": user_id, "type": "question"},
+            vector=[0.0] * int(os.getenv("VECTOR_DIMENSION")),
+            filter={"user_id": user_id,},
             top_k=100,  # Adjust as needed to retrieve all relevant history
             include_metadata=True
         )
