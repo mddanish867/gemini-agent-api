@@ -9,9 +9,15 @@ from embeddings import embedding
 from pinecone_client import index as pinecone_index
 from chroma_client import collection as chroma_collection
 from datetime import datetime
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+VECTOR_DIMENSION = int(os.getenv("VECTOR_DIMENSION"))
 
 app = FastAPI()
 
@@ -99,25 +105,25 @@ async def ask_question(request: QuestionRequest, background_tasks: BackgroundTas
 @app.get("/history")
 async def get_user_history(user_id: str = Query(...)):
     """
-    Optimized history endpoint using Chroma's `where` filter for efficient querying.
+    Optimized history endpoint using Pinecone's `query` with a metadata filter.
     """
     try:
-        # This is MUCH more efficient. The filtering happens inside the database.
-        results = pinecone_index.get(
-            # Correct - using the $and operator
-where={
-    "$and": [
-        {"user_id": user_id},
-        {"type": "question"}
-    ]
-},
-            include=["metadatas"]
+        # Use query() instead of get(). Provide a dummy vector and top_k.
+        results = pinecone_index.query(
+            vector=[0.0] * VECTOR_DIMENSION,
+            filter={"user_id": user_id, "type": "question"},
+            top_k=100,  # Adjust as needed to retrieve all relevant history
+            include_metadata=True
         )
-        
+
+        # The results are inside the 'matches' key.
+        # Each match has a 'metadata' attribute.
+        metadatas = [match['metadata'] for match in results.get('matches', [])]
+
         # Sort results by timestamp in descending order
         sorted_questions = sorted(
-            results['metadatas'], 
-            key=lambda x: x.get("timestamp", ""), 
+            metadatas,
+            key=lambda x: x.get("timestamp", 0),
             reverse=True
         )
 
@@ -129,7 +135,6 @@ where={
     except Exception as e:
         logger.error(f"Error fetching history: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch user history")
-
 
 # --- Your other endpoints (search, debug) remain the same ---
 
