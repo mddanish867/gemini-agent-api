@@ -103,8 +103,14 @@ async def get_user_history(user_id: str = Query(...)):
     """
     try:
         # This is MUCH more efficient. The filtering happens inside the database.
-        results = chroma_collection.get(
-            where={"user_id": user_id, "type": "question"},
+        results = pinecone_index.get(
+            # Correct - using the $and operator
+where={
+    "$and": [
+        {"user_id": user_id},
+        {"type": "question"}
+    ]
+},
             include=["metadatas"]
         )
         
